@@ -1,39 +1,75 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Numerics;
 
 namespace ParentWorkerApp
 {
     class Program
     {
+        static int len = 0;
+        
+        static Stopwatch stopWatch = null ;
+        static double[] iarray= new double [10];
+        static int counter = 0;
         static void Main(string[] args)
         {
-            Console.WriteLine("Start schedular app.");
-            int[] campaignIds = {150,150,150,150,150,150,151,152,153,154,200};
-            //CallWorkerFunctionSimple(campaignIds);
-            CallWorkerFunctionWithParent(campaignIds);
-            Console.WriteLine("End schedular app.");
+            
+                len = 0;
+                stopWatch = Stopwatch.StartNew();
+                Console.WriteLine("Start schedular app.");
+                int[] campaignIds = { 2000, 3000, 4000 };
+                //CallWorkerProcess(campaignIds);
+                CallWorkerFunctionSimple(campaignIds);
+                //CallWorkerFunctionWithParent(campaignIds);
+                Console.WriteLine("End schedular app.");
+            
+            
             //Environment.ExitCode = 0;
             //Environment.Exit(Environment.ExitCode);
+            
             Console.ReadLine();
+            
+
         }
-        private static void CallWorkerFunctionSimple(int[] campaignIds) {
+            private static async void CallWorkerFunctionSimple(int[] campaignIds) {
+            
             List<Task> lstTasks = new List<Task>();
+            //Console.WriteLine("----------Parallel-------------------");
+            //Parallel.ForEach(campaignIds, async (i) =>
+            // {
+            //     /********  With Task . Run **********/
+            //     Console.WriteLine("Queueing Task for " + i);
+            //     BigInteger d = await Task.Run(() => StartWorkerFunction(i));
+            //     Console.WriteLine("End Queuing task for" + i);
+            //     /****** With Task.Factory ********/
+            //     //Console.WriteLine("Queueing Task for " + i);
+            //     //await Task.Factory.StartNew(() => StartWorkerFunction(i));
+            //     //Console.WriteLine("End Queuing task for" + i);
+
+
+
+
+
+            // });
+            Console.WriteLine("----------Simple-------------------");
             foreach (int i in campaignIds)
             {
-                //Run Console App as worker process
-                //Task.Run(()=>StartWorkerProcess(i));
-
-                /***WOrker functioncode****/
-                lstTasks.Add(Task.Factory.StartNew(() => StartWorkerFunction(i)));
-                //Run other function as worker function
-                //Task.Run(() => StartWorkerFunction(i));
+                /********  With Task . Run **********/
+                Console.WriteLine("Queueing Task for " + i);
+                BigInteger d = await Task.Run(() => StartWorkerFunction(i));
+                Console.WriteLine("End Queuing task for" + i);
+                /****** With Task.Factory ********/
+                //Console.WriteLine("Queueing Task for " + i);
+                //await Task.Factory.StartNew(() => StartWorkerFunction(i));
+                //Console.WriteLine("End Queuing task for" + i);
             }
-            Task.WaitAll(lstTasks.ToArray());
+            //Task.WaitAll(lstTasks.ToArray());
+
         }
         private static void CallWorkerFunctionWithParent(int[] campaignIds)
         {
@@ -54,22 +90,41 @@ namespace ParentWorkerApp
             parentTask.Wait();
             //Task.WaitAll(lstTasks.ToArray());
         }
-        private void CallWorkerProcess(int[] campaignIds) {
+        private static void CallWorkerProcess(int[] campaignIds) {
             foreach (int i in campaignIds)
             {
                 //Run Console App as worker process
                 Task.Run(()=>StartWorkerProcess(i));
             }
         }
-        private static void StartWorkerFunction(int campaignId) {
-            Console.WriteLine("Worker started of " + campaignId);
+        private static async Task<BigInteger> StartWorkerFunction(int campaignId) {
+            //System.Threading.Thread.Sleep(5000);
+            Console.WriteLine("Worker started of " + campaignId+", Thread:"+ System.Threading.Thread.CurrentThread.ManagedThreadId);
+
             //System.Threading.Thread.Sleep(15000);
-            double fact = 1;
-            for (int i = 1; i <= campaignId; i++)
+
+            BigInteger result = await Task.Run(() => {
+                BigInteger fact = 1;
+                for (BigInteger i = 1; i <= campaignId; i++)
+                {
+                    fact = fact * i;
+                    
+                }
+                return fact;
+            });
+            Console.WriteLine("Worker ended of " + campaignId);
+            len++;
+            //counter++;
+            if (len == 3)
             {
-                fact = fact * i;
+                Console.WriteLine("Worker ended of " + stopWatch.Elapsed.TotalSeconds);
+               
             }
-            Console.WriteLine("Factorial of " + campaignId + ":" + fact.ToString());
+            
+                
+            return result;
+            
+          
         }
         private static void StartWorkerProcess(int campaignId)
         {
